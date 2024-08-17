@@ -47,14 +47,20 @@ server:
 # Spring-boot config  
 ################################################################################
 spring:
+  ### 기본 프로필 설정 ###
+  profiles:
+    active: local
+
   webflux:
-    base-path: 
+    base-path:
+
   autoconfigure:
     exclude: 
     - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration #일반 디비 설정이 아니므로 자동 설정에서 제외
-  data:
+
 ################################################################################
 # redis settings
+  data:
     redis:
       host: 127.0.0.1
       port: 6379
