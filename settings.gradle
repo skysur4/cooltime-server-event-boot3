@@ -1,0 +1,9 @@
+pluginManagement {
+    repositories {
+        mavenCentral()
+    }
+	plugins {
+		id "org.springframework.boot" version "3.2.8"
+	}
+}
+rootProject.name = 'cooltime-event-service'

@@ -1,0 +1,140 @@
+plugins {
+	id 'org.springframework.boot'
+}
+
+apply plugin: 'java'
+apply plugin: 'io.spring.dependency-management'
+
+sourceCompatibility = '17'
+targetCompatibility = '17'
+
+ext {
+	set('springCloudVersion', "2023.0.3")
+	// JWT 라이브러리 버전
+	jjwtVersion = '0.12.3'
+    /*
+     * 브랜치명이 없거나 main이 아니라면 dev 프로필로 진행
+    */
+	BRANCH_NAME = !project.hasProperty("branchName") ? "local" : branchName
+    BUILD_NUMBER = !project.hasProperty("buildNumber") ? "999" : buildNumber
+	PROFILE = BRANCH_NAME.equalsIgnoreCase("local") ? "local" : BRANCH_NAME.contains("refs/tags/") ? "prod" : "dev"
+
+    TIME_ZONE = TimeZone.getTimeZone("Asia/Seoul")                     // 한국 시간대
+    BUILD_TIME = new Date().format("yyyy-MM-dd HH:mm:ss", TIME_ZONE)   // 빌드 시간
+    MAJOR = PROFILE.equalsIgnoreCase("prod") ? "1" : "0"
+    MINOR = "0"
+    PATCH = BUILD_NUMBER
+
+    BUILD_VERSION = "${MAJOR}.${MINOR}.${PATCH}"
+}
+
+println "[ INFO ] BRANCH_NAME   : ${BRANCH_NAME}"
+println "[ INFO ] BUILD_VERSION : ${BUILD_VERSION}"
+println "[ INFO ] PROFILE       : ${PROFILE}"
+
+group = 'kr.co.bluebears'
+version = BUILD_VERSION
+
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+
+	maven {
+		allowInsecureProtocol true
+		credentials {
+			username System.getenv('NEXUS_USERNAME')
+			password System.getenv('NEXUS_PASSWORD')
+		}
+		url 'https://nexus.cooltime.io/repository/maven-repository/'
+		artifactUrls "https://nexus.cooltime.io/repository/snapshots/"
+		artifactUrls "https://nexus.cooltime.io/repository/releases/"
+		authentication {
+			basic(BasicAuthentication)
+		}
+	}
+
+	maven {
+		url layout.projectDirectory.dir('../../maven_local')
+	}
+}
+
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+	}
+}
+
+dependencies {
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis-reactive'
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+
+	implementation 'org.springframework.boot:spring-boot-configuration-processor'
+	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+    implementation 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+	implementation 'com.github.ulisesbocchio:jasypt-spring-boot-starter:3.0.5'
+
+	//swagger
+	implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:2.6.0'
+
+	// guava
+	implementation 'com.google.guava:guava:33.1.0-jre'
+	// JSON
+	implementation 'org.json:json:20240303'
+
+	// JWT
+    implementation "io.jsonwebtoken:jjwt-api:${jjwtVersion}"
+    implementation "io.jsonwebtoken:jjwt-impl:${jjwtVersion}"
+	implementation "io.jsonwebtoken:jjwt-jackson:${jjwtVersion}"
+
+	// apache
+	implementation 'org.apache.commons:commons-lang3:3.14.0'
+	implementation 'org.apache.commons:commons-collections4:4.4'
+    implementation 'commons-io:commons-io:2.16.0'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+}
+
+jar {
+    enabled = false
+
+    doFirst {
+        println "[ INFO ]  project name    : ${project.name}"
+        println "[ INFO ]  project version : ${project.version}"
+        println "[ INFO ]  build time      : ${BUILD_TIME}"
+    }
+
+    //archiveClassifier = '' //jar파일명에 -plain 제거
+    archiveBaseName = "${project.name}-${BUILD_VERSION}"
+
+    manifest {
+        attributes (
+            "Implementation-Title" : "${project.name}",
+            "Implementation-Version" : "${project.version}",
+            "Build-Time" : "${BUILD_TIME}",
+            "Build-Profile" : "${PROFILE}"
+        )
+    }
+
+    doLast {
+    	logger.info('${project.version}')
+    }
+}
+
+test {
+	useJUnitPlatform()
+}
